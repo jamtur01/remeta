@@ -1,13 +1,12 @@
 # remeta
 
-A tool to refresh metadata for all items in a Jellyfin server. This tool can be run as a standalone Python script or within a Docker container.
+A tool to refresh metadata for season items in a Jellyfin server. This tool can be run as a standalone Python script or within a Docker container.
 
 ## Features
 
 - Refreshes metadata for all items in a Jellyfin server
 - Runs periodically (default: every 30 minutes)
 - Configurable refresh options (full refresh, replace metadata, replace images, etc.)
-- Filter by item types (Movies, Series, etc.)
 - Docker support for easy deployment
 - Configurable via environment variables or command-line arguments
 
@@ -25,8 +24,8 @@ A tool to refresh metadata for all items in a Jellyfin server. This tool can be 
 1. Clone this repository:
 
    ```
-   git clone https://github.com/yourusername/jellyfin-metadata-refresher.git
-   cd jellyfin-metadata-refresher
+   git clone https://github.com/jamtur01/remeta.git
+   cd remeta
    ```
 
 2. Install dependencies:
@@ -38,7 +37,7 @@ A tool to refresh metadata for all items in a Jellyfin server. This tool can be 
 
 1. Build the Docker image:
    ```
-   docker build -t jellyfin-metadata-refresher .
+   docker build -t remeta .
    ```
 
 ## Usage
@@ -75,7 +74,7 @@ python remeta.py --host https://your-jellyfin-server.com --api-key YOUR_API_KEY 
 docker run --rm \
   -e JELLYFIN_HOST=https://your-jellyfin-server.com \
   -e JELLYFIN_API_KEY=YOUR_API_KEY \
-  jellyfin-metadata-refresher [options]
+  remeta [options]
 ```
 
 ### Command-line Options
@@ -139,7 +138,7 @@ docker run --rm \
   -e JELLYFIN_HOST=https://your-jellyfin-server.com \
   -e JELLYFIN_API_KEY=YOUR_API_KEY \
   -e JELLYFIN_USER_ID=YOUR_USER_ID \
-  jellyfin-metadata-refresher --replace-all-metadata --item-types Movie,Series
+  remeta --replace-all-metadata --item-types Movie,Series
 ```
 
 ## Scheduling with Cron
@@ -148,7 +147,7 @@ You can set up a cron job to run the metadata refresher periodically:
 
 ```
 # Run metadata refresh every day at 3:00 AM
-0 3 * * * docker run --rm -e JELLYFIN_HOST=https://your-jellyfin-server.com -e JELLYFIN_API_KEY=YOUR_API_KEY jellyfin-metadata-refresher
+0 3 * * * docker run --rm -e JELLYFIN_HOST=https://your-jellyfin-server.com -e JELLYFIN_API_KEY=YOUR_API_KEY remeta
 ```
 
 ## License

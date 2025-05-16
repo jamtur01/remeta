@@ -1,7 +1,7 @@
-version: '3'
+version: "3"
 
 services:
-  jellyfin-metadata-refresher:
+  remeta:
     build:
       context: .
       dockerfile: Dockerfile

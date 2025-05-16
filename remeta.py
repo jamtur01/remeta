@@ -44,7 +44,7 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[logging.StreamHandler()]
 )
-logger = logging.getLogger('jellyfin-metadata-refresher')
+logger = logging.getLogger('remeta')
 
 class JellyfinMetadataRefresher:
     """Class to handle refreshing metadata for Jellyfin items."""
