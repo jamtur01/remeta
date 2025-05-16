@@ -44,7 +44,7 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[logging.StreamHandler()]
 )
-logger = logging.getLogger('remeta')
+logger = logging.getLogger('jellyfin-metadata-refresher')
 
 class JellyfinMetadataRefresher:
     """Class to handle refreshing metadata for Jellyfin items."""
@@ -216,7 +216,7 @@ class JellyfinMetadataRefresher:
         
         # Add additional parameters to get more items at once
         params['recursive'] = 'true'
-        params['fields'] = 'Path,ProviderIds'
+        params['fields'] = 'Path,ProviderIds,SeriesName'
         params['limit'] = 1000
         
         try:
@@ -435,16 +435,30 @@ class JellyfinMetadataRefresher:
                 results['skipped'] += 1
                 continue
                 
-            logger.info(f"[{i}/{total_items}] Refreshing {item_type}: {item_name} (ID: {item_id})")
+            # Get the series name if available
+            series_name = item.get('SeriesName', '')
+            if series_name:
+                logger.info(f"[{i}/{total_items}] Refreshing {item_type}: {series_name} - {item_name} (ID: {item_id})")
+            else:
+                logger.info(f"[{i}/{total_items}] Refreshing {item_type}: {item_name} (ID: {item_id})")
             
             # Try to refresh the item
             if self.refresh_item(item_id):
                 results['success'] += 1
-                logger.info(f"Successfully refreshed {item_name}")
+                # Include series name in success message if available
+                series_name = item.get('SeriesName', '')
+                if series_name:
+                    logger.info(f"Successfully refreshed {series_name} - {item_name}")
+                else:
+                    logger.info(f"Successfully refreshed {item_name}")
             else:
                 # Add to failed items for retry
-                failed_items.append((item_id, item_name, item_type))
-                logger.warning(f"Failed to refresh {item_name}, will retry later")
+                series_name = item.get('SeriesName', '')
+                failed_items.append((item_id, item_name, item_type, series_name))
+                if series_name:
+                    logger.warning(f"Failed to refresh {series_name} - {item_name}, will retry later")
+                else:
+                    logger.warning(f"Failed to refresh {item_name}, will retry later")
             
             # Add delay between requests to avoid overwhelming the server
             if i < total_items:
@@ -461,16 +475,25 @@ class JellyfinMetadataRefresher:
                 logger.info(f"Retry attempt {retry + 1}/{max_retries}")
                 still_failed = []
                 
-                for item_id, item_name, item_type in failed_items:
-                    logger.info(f"Retrying {item_type}: {item_name} (ID: {item_id})")
+                for item_id, item_name, item_type, series_name in failed_items:
+                    if series_name:
+                        logger.info(f"Retrying {item_type}: {series_name} - {item_name} (ID: {item_id})")
+                    else:
+                        logger.info(f"Retrying {item_type}: {item_name} (ID: {item_id})")
                     
                     # Try to refresh the item again
                     if self.refresh_item(item_id):
                         results['success'] += 1
-                        logger.info(f"Successfully refreshed {item_name} on retry")
+                        if series_name:
+                            logger.info(f"Successfully refreshed {series_name} - {item_name} on retry")
+                        else:
+                            logger.info(f"Successfully refreshed {item_name} on retry")
                     else:
-                        still_failed.append((item_id, item_name, item_type))
-                        logger.warning(f"Failed to refresh {item_name} on retry")
+                        still_failed.append((item_id, item_name, item_type, series_name))
+                        if series_name:
+                            logger.warning(f"Failed to refresh {series_name} - {item_name} on retry")
+                        else:
+                            logger.warning(f"Failed to refresh {item_name} on retry")
                     
                     # Add delay between requests
                     time.sleep(self.delay)
@@ -488,8 +511,11 @@ class JellyfinMetadataRefresher:
             # Log failed items
             if failed_items:
                 logger.warning(f"Failed to refresh {len(failed_items)} items after {max_retries} retries:")
-                for item_id, item_name, item_type in failed_items:
-                    logger.warning(f"  - {item_type}: {item_name} (ID: {item_id})")
+                for item_id, item_name, item_type, series_name in failed_items:
+                    if series_name:
+                        logger.warning(f"  - {item_type}: {series_name} - {item_name} (ID: {item_id})")
+                    else:
+                        logger.warning(f"  - {item_type}: {item_name} (ID: {item_id})")
         
         return results
 
