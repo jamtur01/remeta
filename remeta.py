@@ -12,7 +12,6 @@ Usage:
 Environment variables:
     JELLYFIN_HOST: Jellyfin server URL
     JELLYFIN_API_KEY: Jellyfin API key
-    JELLYFIN_USER_ID: User ID to filter items
 
 Configuration:
     The script supports loading environment variables from a .env file.
@@ -20,7 +19,6 @@ Configuration:
     
     JELLYFIN_HOST=https://your-jellyfin-server.com
     JELLYFIN_API_KEY=your_api_key_here
-    JELLYFIN_USER_ID=your_user_id_here
 
 Periodic Execution:
     By default, the script runs every 30 minutes. You can customize this with:
@@ -53,7 +51,6 @@ class JellyfinMetadataRefresher:
         self,
         host: str,
         api_key: str,
-        user_id: Optional[str] = None,
         batch_size: int = 20,
         delay: float = 1.0,
         refresh_mode: str = "FullRefresh",
@@ -69,7 +66,6 @@ class JellyfinMetadataRefresher:
         Args:
             host: Jellyfin server URL
             api_key: Jellyfin API key
-            user_id: Optional user ID to filter items
             batch_size: Number of items to process in parallel
             delay: Delay between API requests in seconds
             refresh_mode: Metadata refresh mode (None, ValidationOnly, Default, FullRefresh)
@@ -86,7 +82,6 @@ class JellyfinMetadataRefresher:
         # Ensure host doesn't end with a trailing slash
         self.host = host.rstrip('/')
         self.api_key = api_key
-        self.user_id = user_id
         self.batch_size = batch_size
         self.delay = delay
         self.refresh_mode = refresh_mode
@@ -204,8 +199,6 @@ class JellyfinMetadataRefresher:
         logger.debug("Using the Items endpoint with includeItemTypes=Season filter")
         
         params = {}
-        if self.user_id:
-            params['userId'] = self.user_id
         if parent_id:
             params['parentId'] = parent_id
         
@@ -278,38 +271,9 @@ class JellyfinMetadataRefresher:
         except RequestException as e:
             logger.error(f"Error getting items: {e}")
             
-            # Check for specific error types
+            # Log error details for Bad Request
             if "400 Client Error: Bad Request" in str(e):
                 logger.error("Received 400 Bad Request error. This might be due to invalid parameters.")
-                
-                # Check if userId might be the issue
-                if 'userId' in params:
-                    logger.error(f"The userId '{params['userId']}' might be invalid. Try removing it or using a different user ID.")
-                    logger.error("You can modify your .env file to remove JELLYFIN_USER_ID or set it to a valid user ID.")
-                
-                # Suggest trying without userId
-                if self.user_id:
-                    logger.info("Attempting to retry without userId parameter...")
-                    params_without_userid = params.copy()
-                    params_without_userid.pop('userId', None)
-                    
-                    try:
-                        logger.debug(f"Making request to {url} with params (without userId): {params_without_userid}")
-                        retry_response = requests.get(url, headers=self.headers, params=params_without_userid)
-                        
-                        # Dump request/response details if debug mode is enabled
-                        self._dump_request_response('GET', url, params_without_userid, self.headers, retry_response)
-                        
-                        retry_response.raise_for_status()
-                        
-                        try:
-                            data = retry_response.json()
-                            logger.info("Request succeeded without userId parameter!")
-                            return data.get('Items', [])
-                        except ValueError:
-                            logger.error("Still received invalid JSON response even without userId parameter")
-                    except RequestException as retry_e:
-                        logger.error(f"Retry without userId also failed: {retry_e}")
             
             # Dump request/response details if debug mode is enabled
             self._dump_request_response('GET', url, params, self.headers, error=e)
@@ -528,7 +492,6 @@ def parse_arguments():
     parser.add_argument('--api-key', help='Jellyfin API key')
     
     # Optional arguments
-    parser.add_argument('--user-id', help='User ID to filter items')
     parser.add_argument('--batch-size', type=int, default=20, help='Number of items to process in parallel')
     parser.add_argument('--delay', type=float, default=1.0, help='Delay between API requests in seconds')
     parser.add_argument('--refresh-mode', choices=['None', 'ValidationOnly', 'Default', 'FullRefresh'],
@@ -566,7 +529,6 @@ def main():
     # Get configuration from environment variables if not provided as arguments
     host = args.host or os.environ.get('JELLYFIN_HOST')
     api_key = args.api_key or os.environ.get('JELLYFIN_API_KEY')
-    user_id = args.user_id or os.environ.get('JELLYFIN_USER_ID')
     
     # Check for environment variables for periodic execution
     run_once = args.run_once or os.environ.get('RUN_ONCE') is not None
@@ -599,7 +561,6 @@ def main():
     refresher = JellyfinMetadataRefresher(
         host=host,
         api_key=api_key,
-        user_id=user_id,
         batch_size=args.batch_size,
         delay=args.delay,
         refresh_mode=args.refresh_mode,
