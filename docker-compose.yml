@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+  jellyfin-metadata-refresher:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - JELLYFIN_HOST=${JELLYFIN_HOST}
+      - JELLYFIN_API_KEY=${JELLYFIN_API_KEY}
+      - JELLYFIN_USER_ID=${JELLYFIN_USER_ID:-}
+      - DEBUG=${DEBUG:-}
+      - RUN_ONCE=${RUN_ONCE:-}
+      - REFRESH_INTERVAL=${REFRESH_INTERVAL:-30}
+    # You can pass additional command-line arguments here
+    command: ${ADDITIONAL_ARGS:-}
+    # Uncomment to use a volume for logs
+    # volumes:
+    #   - ./logs:/app/logs
+    restart: "no"
