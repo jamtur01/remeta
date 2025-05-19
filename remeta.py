@@ -54,8 +54,8 @@ class JellyfinMetadataRefresher:
         batch_size: int = 20,
         delay: float = 1.0,
         refresh_mode: str = "FullRefresh",
-        replace_all_metadata: bool = False,
-        replace_all_images: bool = False,
+        replace_all_metadata: bool = True,
+        replace_all_images: bool = True,
         regenerate_trickplay: bool = False,
         item_types: Optional[List[str]] = ["Season"],  # Default to Season type only
         debug: bool = False
